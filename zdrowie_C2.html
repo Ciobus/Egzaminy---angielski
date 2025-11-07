@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8"/>
+<title>Test pamięci — Zdrowie – C2</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<style>
+  body {{ font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; max-width:900px; margin:20px auto; padding:0 16px; line-height:1.45; }}
+  h1 {{ font-size:1.4rem; margin-bottom:0.2rem; }}
+  textarea {{ width:100%; min-height:120px; font-size:1rem; padding:10px; box-sizing:border-box; }}
+  button {{ padding:8px 12px; border-radius:8px; border:1px solid #bbb; background:white; cursor:pointer; margin-right:6px; }}
+  #results {{ margin-top:18px; }}
+  .good {{ background:#c6f6c6; }}
+  .bad {{ background:#fca5a5; }}
+  .muted {{ color:#555; font-size:0.95rem; }}
+  .counter {{ font-weight:bold; color:#2563eb; }}
+  table {{ border-collapse:collapse; width:100%; margin-top:10px; }}
+  th, td {{ border:1px solid #ddd; padding:8px; text-align:left; }}
+  th {{ background:#f8f8f8; }}
+  .level-header {{ background-color: #b91c1c; color: white; font-size: 1.2rem; font-weight: bold; padding: 10px 16px; text-align: center; border-radius: 0 0 8px 8px; margin-bottom: 12px; }}
+  .controls {{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px; }}
+  .small {{ font-size:0.9rem; color:#444; }}
+  label {{ display:inline-flex; align-items:center; gap:6px; }}
+</style>
+</head>
+<body>
+<div class="level-header">Zdrowie – C2</div>
+<h1>Test pamięci — pary PL-EN</h1>
+<p class="muted">Wpisz pary słów w formacie: <b>polskie słowo - angielskie słowo</b>.<br>
+Możesz podać kilka par, oddzielając je <b>przecinkami</b> lub <b>nowymi liniami</b>.<br>
+(Uwaga: <b>średnik „;”</b> w środku słowa oznacza wiele tłumaczeń – nie oddziela par!)</p>
+
+<textarea id="answers" placeholder="Przykład: polskie - angielskie"></textarea>
+<div class="controls">
+  <button id="checkBtn">Sprawdź</button>
+  <button id="hintBtn">Podpowiedź</button>
+  <button id="clearBtn">Wyczyść</button>
+  <label><input type="checkbox" id="hideDone"> Ukryj odgadnięte słowa</label>
+  <div class="small">Trafione: <span id="counter">0</span> / <span id="total">0</span></div>
+</div>
+
+<div id="results"></div>
+
+<script>
+const ITEMS = [{"pl": "medycyna ogólna; przychodnia medycyny ogólnej", "en": "(a) general practice"}, {"pl": "lekarz pierwszego kontaktu", "en": "a General Practitioner"}, {"pl": "lekarz pierwszego kontaktu (skrót)", "en": "a GP"}, {"pl": "lekarz", "en": "a physician"}, {"pl": "diagnoza", "en": "a diagnosis"}, {"pl": "diagnozy", "en": "diagnoses"}, {"pl": "hipochondria", "en": "hypochondria"}, {"pl": "hipochondryk", "en": "a hypochondriac"}, {"pl": "wrzód", "en": "an ulcer"}, {"pl": "owrzodzony", "en": "ulcerated"}, {"pl": "sercowo-naczyniowy; krążeniowy", "en": "cardiovascular"}, {"pl": "atak serca", "en": "a coronary"}, {"pl": "wieńcowy", "en": "coronary"}, {"pl": "udar (mózgu); apopleksja", "en": "a stroke"}, {"pl": "wrodzony", "en": "congenital"}, {"pl": "białaczka", "en": "leukaemia"}, {"pl": "guz; nowotwór", "en": "a tumour"}, {"pl": "przerzut (nowotworowy)", "en": "a secondary tumour"}, {"pl": "zdarzać się ponowni; powracać", "en": "to recur"}, {"pl": "powtórka; nawrót (np. choroby)", "en": "(a) recurrence"}, {"pl": "powtarzający się; nawracający", "en": "recurrent"}, {"pl": "trauma; traumatyczne przeżycie", "en": "(a) trauma"}, {"pl": "traumatyczny", "en": "traumatic"}, {"pl": "astma", "en": "asthma"}, {"pl": "astmatyk", "en": "an asthmatic"}, {"pl": "astmatyczny", "en": "asthmatic"}, {"pl": "wdychać", "en": "to inhale"}, {"pl": "wdychanie", "en": "inhalation"}, {"pl": "inhalator", "en": "an inhaler"}, {"pl": "hemofilia", "en": "haemophillia"}, {"pl": "hemofilik (osoba chora na hemofilię)", "en": "a haemophilliac"}, {"pl": "dziedziczny", "en": "hereditary"}, {"pl": "krwotok (zwłaszcza wewnętrzny)", "en": "a haemorrhage"}, {"pl": "wylew krwi do mózgu", "en": "a brain haemorrhage"}, {"pl": "krzepnąć (np. o krwi)", "en": "to clot"}, {"pl": "skrzep", "en": "a clot"}, {"pl": "anemia", "en": "anaemia"}, {"pl": "anemiczny", "en": "anaemic"}, {"pl": "artretyzm", "en": "arthritis"}, {"pl": "artretyczny", "en": "arthritic"}, {"pl": "reumatyzm", "en": "rheumatism"}, {"pl": "reumatyczny", "en": "reumatic"}, {"pl": "tyfus", "en": "typhoid"}, {"pl": "mdlić (kogoś)", "en": "to nauseate"}, {"pl": "mdłości", "en": "nausea"}, {"pl": "mdlący (np. o zapachu); obrzydliwy", "en": "nauseating"}, {"pl": "malaria", "en": "malaria"}, {"pl": "odpychać; odstraszać", "en": "to repel"}, {"pl": "środek odstraszający", "en": "(a) repellent"}, {"pl": "wścieklizna", "en": "rabies"}, {"pl": "rozcinać", "en": "to gash"}, {"pl": "rozcięcie; rana", "en": "a gash"}, {"pl": "zapalenie; stan zapalny", "en": "(an) inflammation"}, {"pl": "ropa", "en": "pus"}, {"pl": "gangrena", "en": "gangrene"}, {"pl": "dotknięty gangreną", "en": "gangrenous"}, {"pl": "trąd", "en": "leprosy"}, {"pl": "trędowaty", "en": "leprous"}, {"pl": "swędzieć (o skórze); gryźć (o tkaninach);", "en": "to itch"}, {"pl": "swędzenie", "en": "an itch"}, {"pl": "kaftan bezpieczeństwa", "en": "a straitjacket"}, {"pl": "nosze", "en": "a stretcher"}, {"pl": "łagodzić; redukować", "en": "to alleviate"}, {"pl": "pogarszać się", "en": "to deteriorate"}, {"pl": "pogorszenie", "en": "deterioration"}, {"pl": "odwadniać (się)", "en": "to dehydrate"}, {"pl": "odwodnienie", "en": "dehydration"}, {"pl": "odwodniony", "en": "dehydrated"}, {"pl": "rokowanie; prognoza", "en": "a prognosis"}, {"pl": "rokowania; prognozy", "en": "prognoses"}, {"pl": "ciąć; przecinać (podczas operacji)", "en": "to section"}, {"pl": "cięcie; przecinanie", "en": "a section"}, {"pl": "cesarskie cięcie", "en": "a Caesarean section"}, {"pl": "cesarka (cięcie)", "en": "a Caesarean"}, {"pl": "pediatria", "en": "paediatrics"}, {"pl": "pediatra", "en": "a paediatrician"}, {"pl": "pediatryczny", "en": "paediatric"}, {"pl": "żółtaczka", "en": "hepatitis"}, {"pl": "próchnica", "en": "caries"}, {"pl": "próchnica zębów", "en": "dental caries"}, {"pl": "kamień nazębny", "en": "plaque"}, {"pl": "aparat ortodontyczny", "en": "a brace"}, {"pl": "trądzik", "en": "acne"}, {"pl": "słuchowy", "en": "aural"}, {"pl": "bezsenność", "en": "insomnia"}, {"pl": "osoba cierpiąca na bezsenność", "en": "an insomniac"}, {"pl": "zielarstwo; ziołolecznictwo", "en": "herbalism"}, {"pl": "zielarz", "en": "a herbalist"}, {"pl": "homeopatia", "en": "homeopathy"}, {"pl": "homeopata", "en": "a homeopath"}, {"pl": "homeopatyczny", "en": "homeopathic"}, {"pl": "kręgarstwo; chiropraktyka (uciskanie kręgosłupa i kości)", "en": "chiropractic"}, {"pl": "kręgarz", "en": "a chiropractor"}];
+
+let matched = [];
+let order = ITEMS.map((_,i)=>i);
+let showAll = false;
+let showHintsMode = false;
+
+document.getElementById('total').textContent = ITEMS.length;
+
+function normalize(s){ return String(s||'').trim().toLowerCase().replace(/[.,:()"]/g,'').normalize('NFKD').replace(/[̀-ͯ]/g,''); }
+
+function render(){
+  const results = document.getElementById('results');
+  results.innerHTML = '';
+  const table = document.createElement('table');
+  table.innerHTML = '<thead><tr><th>#</th><th>Angielski</th><th>Polski</th></tr></thead>';
+  const tbody = document.createElement('tbody');
+  let visibleIndex = 0;
+  order.forEach((origIdx, i)=>{
+    const it = ITEMS[origIdx];
+    const isMatched = matched.includes(origIdx);
+    if (document.getElementById('hideDone').checked && isMatched) return;
+    const tr = document.createElement('tr');
+    if (isMatched) tr.classList.add('good');
+    else if (showAll) tr.classList.add('bad');
+    const en = (isMatched || showAll) ? it.en : '— — —';
+    const pl = it.pl;
+    tr.innerHTML = `<td>${visibleIndex+1}</td><td>${en}</td><td>${pl}</td>`;
+    tbody.appendChild(tr);
+    visibleIndex++;
+  });
+  table.appendChild(tbody);
+  results.appendChild(table);
+  document.getElementById('counter').textContent = matched.length;
+  document.getElementById('total').textContent = ITEMS.length;
+}
+
+function autoCheck(){
+  const raw = document.getElementById('answers').value;
+  const entries = raw.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);
+  let newlyMatched = [];
+  entries.forEach(e=>{
+    const parts = e.split('-');
+    if(parts.length!==2) return;
+    const left = normalize(parts[0]);
+    const right = normalize(parts[1]);
+    for(const idx of order){
+      if(matched.includes(idx)) continue;
+      const it = ITEMS[idx];
+      const enN = normalize(it.en);
+      const plN = normalize(it.pl);
+      if((plN===left && enN===right) || (plN===right && enN===left)){
+        newlyMatched.push(idx);
+        break;
+      }
+    }
+  });
+  if(newlyMatched.length){
+    newlyMatched.forEach(idx=>{
+      order = order.filter(x=>x!==idx);
+      order.push(idx);
+      matched.push(idx);
+    });
+  }
+  render();
+}
+
+document.getElementById('answers').addEventListener('input', ()=>{
+  showAll = false;
+  showHintsMode = false;
+  autoCheck();
+  document.getElementById('counter').textContent = matched.length;
+});
+
+document.getElementById('checkBtn').addEventListener('click', ()=>{
+  showAll = true;
+  showHintsMode = false;
+  render();
+  const tbody = document.querySelector('#results tbody');
+  let rowIdx = 0;
+  for(const origIdx of order){
+    if(document.getElementById('hideDone').checked && matched.includes(origIdx)) continue;
+    const tr = tbody.children[rowIdx];
+    tr.children[1].textContent = ITEMS[origIdx].en;
+    rowIdx++;
+  }
+});
+
+document.getElementById('hintBtn').addEventListener('click', ()=>{
+  showHintsMode = true;
+  showAll = false;
+  render();
+  const tbody = document.querySelector('#results tbody');
+  if(!tbody) return;
+  let rowIdx = 0;
+  for(const origIdx of order){
+    if(document.getElementById('hideDone').checked && matched.includes(origIdx)) continue;
+    const tr = tbody.children[rowIdx];
+    if(!matched.includes(origIdx)){
+      tr.children[1].textContent = ITEMS[origIdx].en;
+    }
+    rowIdx++;
+  }
+});
+
+document.getElementById('clearBtn').addEventListener('click', ()=>{
+  document.getElementById('answers').value = '';
+  matched = [];
+  order = ITEMS.map((_,i)=>i);
+  showAll = false;
+  showHintsMode = false;
+  document.getElementById('hideDone').checked = false;
+  render();
+});
+
+document.getElementById('hideDone').addEventListener('change', ()=>{
+  render();
+});
+
+render();
+</script>
+</body>
+</html>
