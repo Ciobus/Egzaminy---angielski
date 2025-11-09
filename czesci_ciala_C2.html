@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8"/>
+<title>Części ciała – C2</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<style>
+  body { font-family:"Segoe UI", Roboto, -apple-system, "Helvetica Neue", Arial, sans-serif; max-width:980px; margin:20px auto; padding:0 18px; color:#111; background:#f6f6f6; }
+  .level-header { background:#b91c1c; color:#fff; padding:14px 20px; border-radius:6px; text-align:center; font-weight:700; font-size:1.1rem; margin-bottom:14px; }
+  .card { background:#fff; border-radius:10px; padding:18px; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+  h1 { font-size:1.6rem; margin:6px 0 8px 0; }
+  .muted { color:#555; }
+  textarea { width:100%; min-height:140px; padding:12px; box-sizing:border-box; font-family:monospace; font-size:0.95rem; border:1px solid #ccc; border-radius:6px; }
+  .controls { display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+  button { background:#fff; border:1px solid #d1d5db; padding:8px 12px; border-radius:8px; cursor:pointer; }
+  button.primary { background:#10b981; color:white; border-color:#10b981; }
+  button.info { background:#3b82f6; color:white; border-color:#3b82f6; }
+  button.gray { background:#fff; color:#111; }
+  label.inline { display:inline-flex; align-items:center; gap:8px; font-size:0.95rem; color:#333; }
+  .small { color:#444; margin-left:auto; }
+  table { width:100%; border-collapse:collapse; margin-top:12px; background:#fff; }
+  th, td { padding:12px 10px; border:1px solid #eef2f7; text-align:left; vertical-align:middle; }
+  th { background:#fafafa; font-weight:700; }
+  .good { background:#e6f9e6; }
+  .bad { background:#fff0f0; }
+  @media (max-width:640px){ .controls{flex-direction:column; align-items:stretch;} .small{margin-left:0;} }
+</style>
+</head>
+<body>
+  <div class="level-header">Części ciała – C2</div>
+
+  <div class="card" role="main">
+    <h1>Test pamięci — pary PL-EN</h1>
+    <p class="muted">
+      Wpisz pary słów w formacie: <strong>polskie słowo - angielskie słowo</strong>.<br>
+      Możesz podać kilka par, oddzielając je <strong>przecinkami</strong> lub <strong>nowymi liniami</strong>.<br>
+      (Uwaga: <strong>średnik „;”</strong> w środku słowa oznacza wiele tłumaczeń — nie oddziela par!)
+    </p>
+
+    <textarea id="answers" placeholder="Przykład: polskie - angielskie"></textarea>
+
+    <div class="controls" style="margin-top:10px;">
+      <button id="hintBtn" class="info">Podpowiedź</button>
+      <button id="checkBtn" class="primary">Sprawdź</button>
+      <button id="clearBtn" class="gray">Wyczyść</button>
+      <label class="inline"><input type="checkbox" id="hideDone"> Ukryj odgadnięte słowa</label>
+      <div class="small">Trafione: <span id="counter">0</span> / <span id="total">0</span></div>
+    </div>
+
+    <div id="results" style="margin-top:14px;"></div>
+  </div>
+
+<script>
+const ITEMS = [
+{pl:"źrenica", en:"a pupil"},
+{pl:"skroń", en:"a temple"},
+{pl:"płat; płatek", en:"a lobe"},
+{pl:"nozdrze; dziurka w nosie", en:"a nostril"},
+{pl:"żuchwa", en:"a jawbone"},
+{pl:"obojczyk", en:"a collarbone"},
+{pl:"mostek", en:"a breastbone"},
+{pl:"pacha", en:"an armpit"},
+{pl:"sutek", en:"a nipple"},
+{pl:"pępek", en:"a navel"},
+{pl:"pępek (potocznie)", en:"a belly button"},
+{pl:"pępowina", en:"an umbilical cord"},
+{pl:"przeciąć pępowinę", en:"to cut the cord"},
+{pl:"jelito", en:"a gut"},
+{pl:"wnętrzności; bebechy", en:"guts"},
+{pl:"trzustka", en:"a pancreas"},
+{pl:"trzustkowy", en:"pancreatic"},
+{pl:"rak trzustki", en:"pancreatic cancer"},
+{pl:"wyrostek robaczkowy", en:"an appendix"},
+{pl:"zapalenie wyrostka robaczkowego", en:"appendicitis"},
+{pl:"usunięcie wyrostka robaczkowego", en:"an appendectomy"},
+{pl:"pachwina", en:"a groin"},
+{pl:"skórka (wokół paznokcia)", en:"a cuticle"},
+{pl:"kostka; staw palca", en:"a knuckle"},
+{pl:"goleń", en:"a shin"},
+{pl:"kość goleniowa", en:"a shin bone"},
+{pl:"ochraniacz na goleń", en:"a shin pad"},
+{pl:"szpik", en:"marrow"},
+{pl:"przeszczep szpiku", en:"a marrow transplant"},
+{pl:"przemarznięty do szpiku kości", en:"frozen to the marrow"}
+];
+
+let matched = [];
+let order = ITEMS.map((_,i)=>i);
+let showAll = false;
+
+function normalize(s){
+  return String(s||'')
+    .trim()
+    .toLowerCase()
+    .replace(/[.,:()"]/g,'')
+    .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D\u2011]/g,'-')
+    .normalize('NFKD')
+    .replace(/\s+/g,' ')
+    .replace(/^[\s\.,:;]+|[\s\.,:;]+$/g,'');
+}
+
+function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function render(){
+  const results=document.getElementById('results');
+  results.innerHTML='';
+  const table=document.createElement('table');
+  table.innerHTML='<thead><tr><th>#</th><th>Angielski</th><th>Polski</th></tr></thead>';
+  const tbody=document.createElement('tbody');
+  let visible=0;
+  for(const i of order){
+    const it=ITEMS[i], done=matched.includes(i);
+    if(document.getElementById('hideDone').checked && done) continue;
+    const tr=document.createElement('tr');
+    if(done) tr.classList.add('good');
+    else if(showAll) tr.classList.add('bad');
+    const enTxt=(done||showAll)?it.en:'— — —';
+    tr.innerHTML=`<td>${visible+1}</td><td>${escapeHtml(enTxt)}</td><td>${escapeHtml(it.pl)}</td>`;
+    tbody.appendChild(tr);
+    visible++;
+  }
+  table.appendChild(tbody);
+  results.appendChild(table);
+  document.getElementById('counter').textContent=matched.length;
+  document.getElementById('total').textContent=ITEMS.length;
+}
+
+const reSep=/^(.+?)\s+[-–—]\s+(.+)$/;
+
+function autoCheck(){
+  const raw=document.getElementById('answers').value;
+  const entries=raw.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);
+  const newly=[];
+  for(const e of entries){
+    const m=e.match(reSep);
+    if(!m) continue;
+    const left=normalize(m[1]);
+    const right=normalize(m[2]);
+    for(const idx of order){
+      if(matched.includes(idx)) continue;
+      const en=normalize(ITEMS[idx].en);
+      const pl=normalize(ITEMS[idx].pl);
+      if((pl===left&&en===right)||(en===left&&pl===right)){
+        newly.push(idx); break;
+      }
+    }
+  }
+  if(newly.length){
+    for(const i of newly){
+      order=order.filter(x=>x!==i);
+      order.push(i);
+      matched.push(i);
+    }
+    render();
+  }
+}
+
+document.getElementById('hintBtn').onclick=()=>{showAll=false;render();const tbody=document.querySelector('#results tbody');if(!tbody)return;let r=0;for(const i of order){if(document.getElementById('hideDone').checked&&matched.includes(i))continue;const tr=tbody.children[r];if(!matched.includes(i))tr.children[1].textContent=ITEMS[i].en;r++;}};
+document.getElementById('checkBtn').onclick=()=>{showAll=true;render();const tbody=document.querySelector('#results tbody');if(!tbody)return;let r=0;for(const i of order){if(document.getElementById('hideDone').checked&&matched.includes(i))continue;tbody.children[r].children[1].textContent=ITEMS[i].en;r++;}};
+document.getElementById('clearBtn').onclick=()=>{document.getElementById('answers').value='';matched=[];order=ITEMS.map((_,i)=>i);showAll=false;document.getElementById('hideDone').checked=false;render();};
+document.getElementById('answers').oninput=()=>{showAll=false;autoCheck();};
+document.getElementById('hideDone').onchange=()=>{render();};
+render();
+</script>
+</body>
+</html>
