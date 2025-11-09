@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8"/>
+<title>Dom – C2</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<style>
+body { font-family: "Segoe UI", Roboto, -apple-system, "Helvetica Neue", Arial, sans-serif; max-width:980px; margin:20px auto; padding:0 18px; color:#111; }
+.level-header { background:#b91c1c; color:#fff; padding:14px 20px; border-radius:6px; text-align:center; font-weight:700; font-size:1.1rem; margin-bottom:14px; }
+h1 { font-size:1.6rem; margin:6px 0 8px 0; }
+.muted { color:#555; }
+textarea { width:100%; min-height:140px; padding:12px; box-sizing:border-box; font-family:monospace; font-size:0.95rem; border:1px solid #ccc; border-radius:6px; }
+.controls { display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+button { border:1px solid #d1d5db; padding:8px 12px; border-radius:8px; cursor:pointer; color:white; }
+button#checkBtn { background:#10b981; border-color:#10b981; } /* zielony */
+button#hintBtn { background:#3b82f6; border-color:#3b82f6; } /* niebieski */
+button#clearBtn { background:#6b7280; border-color:#6b7280; color:white; }
+label.inline { display:inline-flex; align-items:center; gap:6px; font-size:0.95rem; color:#333; }
+.small { color:#444; margin-left:auto; }
+table { width:100%; border-collapse:collapse; margin-top:12px; }
+th, td { padding:12px 10px; border:1px solid #eee; text-align:left; }
+th { background:#fafafa; font-weight:700; }
+.good { background:#e6f9e6; }
+.bad { background:#fff0f0; }
+</style>
+</head>
+<body>
+<div class="level-header">Dom – C2</div>
+<h1>Test pamięci — pary PL-EN</h1>
+<p class="muted">
+Wpisz pary słów w formacie: <strong>polskie słowo - angielskie słowo</strong>.<br>
+Możesz podać kilka par, oddzielając je <strong>przecinkami</strong> lub <strong>nowymi liniami</strong>.<br>
+(Uwaga: średnik <code>;</code> w środku słowa oznacza wiele tłumaczeń — nie oddziela par!)
+</p>
+
+<textarea id="answers" placeholder="Przykład: polskie - angielskie"></textarea>
+<div class="controls">
+  <button id="checkBtn">Sprawdź</button>
+  <button id="hintBtn">Podpowiedź</button>
+  <button id="clearBtn">Wyczyść</button>
+  <label class="inline"><input type="checkbox" id="hideDone"> Ukryj odgadnięte słowa</label>
+  <div class="small">Trafione: <span id="counter">0</span> / <span id="total">0</span></div>
+</div>
+
+<div id="results"></div>
+
+<script>
+const ITEMS = [
+{pl:"parterowy dom", en:"a bungalow"},
+{pl:"samowystarczalny; samodzielny", en:"self-contained"},
+{pl:"apartament na ostatnim piętrze", en:"a penthouse"},
+{pl:"małe, dodatkowe mieszkanie", en:"a pied-à-terre"},
+{pl:"małe, dodatkowe mieszkania", en:"pieds-à-terre"},
+{pl:"dom lub mieszkanie (kupione przez kilka osób)", en:"a timeshare"},
+{pl:"korzystanie (ze wspólnego domu lub mieszkania)", en:"timesharing"},
+{pl:"rudera", en:"a hovel"},
+{pl:"podest; półpiętro", en:"a landing"},
+{pl:"poręcz przy schodach", en:"a banister"},
+{pl:"gzyms kominka", en:"a mantelpiece"},
+{pl:"kredens", en:"a sideboard"},
+{pl:"próg (także przenośnie)", en:"a threshold"},
+{pl:"próg podatkowy", en:"a tax threshold"},
+{pl:"parapet", en:"a windowsill"},
+{pl:"szklić; glazurować", en:"to glaze"},
+{pl:"glazura", en:"a glaze"},
+{pl:"podwójne szyby", en:"double glazing"},
+{pl:"świetlik; okno dachowe", en:"a skylight"},
+{pl:"okiennica", en:"a shutter"},
+{pl:"zamknąć sklep (firmę) pod koniec dnia (na stałe)", en:"to put up the shutters"},
+{pl:"przesłona w aparacie fotograficznym", en:"a camera shutter"},
+{pl:"zamykać na zasuwę; ryglować", en:"to bolt"},
+{pl:"zasuwa; rygiel", en:"a bolt"},
+{pl:"rynna", en:"a gutter"},
+{pl:"orynnowanie", en:"guttering"},
+{pl:"prasa bulwarowa", en:"the gutter press"},
+{pl:"dobudówka", en:"an extension"},
+{pl:"przydomowa cieplarnia; ogród zimowy", en:"a conservatory"},
+{pl:"ganek", en:"a porch"},
+{pl:"podjazd", en:"a drive"}
+];
+
+let matched = [];
+let order = ITEMS.map((_,i)=>i);
+let showAll = false;
+document.getElementById('total').textContent = ITEMS.length;
+
+function normalize(s){
+  return String(s||'').trim().toLowerCase()
+    .replace(/[.,:()"]/g,'')
+    .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D\u2011]/g,'-') 
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g,'') // usuwa akcenty diakrytyczne
+    .replace(/\s+/g,' ');
+}
+
+const dashChars = '\u2010-\u2015\u2212\uFE58\uFE63\uFF0D\u2011\\-';
+const reLeftSpace  = new RegExp('^(.+?)\\s+['+dashChars+']\\s*(.+)$');
+const reRightSpace = new RegExp('^(.+?)\\s*['+dashChars+']\\s+(.+)$');
+
+function render(){
+  const results = document.getElementById('results');
+  results.innerHTML = '';
+  const table = document.createElement('table');
+  table.innerHTML = '<thead><tr><th>#</th><th>Angielski</th><th>Polski</th></tr></thead>';
+  const tbody = document.createElement('tbody');
+  let visibleIndex = 0;
+  for (const origIdx of order){
+    if(document.getElementById('hideDone').checked && matched.includes(origIdx)) continue;
+    const it = ITEMS[origIdx];
+    const isMatched = matched.includes(origIdx);
+    const tr = document.createElement('tr');
+    if(isMatched) tr.classList.add('good');
+    else if(showAll) tr.classList.add('bad');
+    const en = (isMatched || showAll) ? it.en : '— — —';
+    tr.innerHTML = `<td>${visibleIndex+1}</td><td>${en}</td><td>${it.pl}</td>`;
+    tbody.appendChild(tr);
+    visibleIndex++;
+  }
+  table.appendChild(tbody);
+  results.appendChild(table);
+  document.getElementById('counter').textContent = matched.length;
+  document.getElementById('total').textContent = ITEMS.length;
+}
+
+function autoCheck(){
+  const raw = document.getElementById('answers').value;
+  const entries = raw.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);
+  const newly = [];
+  for (const e of entries){
+    const m = e.match(reLeftSpace) || e.match(reRightSpace);
+    if(!m) continue;
+    const left = normalize(m[1].trim());
+    const right = normalize(m[2].trim());
+    for(const idx of order){
+      if(matched.includes(idx)) continue;
+      const it = ITEMS[idx];
+      const enN = normalize(it.en);
+      const plN = normalize(it.pl);
+      if((plN===left && enN===right) || (plN===right && enN===left)){
+        newly.push(idx);
+        break;
+      }
+    }
+  }
+  if(newly.length){
+    for(const idx of newly){
+      order = order.filter(x=>x!==idx);
+      order.push(idx); // odgadnięte na koniec
+      matched.push(idx);
+    }
+    render();
+  }
+}
+
+document.getElementById('answers').addEventListener('input', ()=>{ showAll=false; autoCheck(); });
+document.getElementById('checkBtn').addEventListener('click', ()=>{ showAll=true; render(); });
+document.getElementById('hintBtn').addEventListener('click', ()=>{
+  showAll=false; render();
+  const tbody = document.querySelector('#results tbody');
+  if(!tbody) return;
+  let r=0;
+  for(const origIdx of order){
+    if(document.getElementById('hideDone').checked && matched.includes(origIdx)) continue;
+    const tr = tbody.children[r];
+    if(!matched.includes(origIdx)) tr.children[1].textContent = ITEMS[origIdx].en;
+    r++;
+  }
+});
+document.getElementById('clearBtn').addEventListener('click', ()=>{
+  document.getElementById('answers').value='';
+  matched=[];
+  order=ITEMS.map((_,i)=>i);
+  showAll=false;
+  document.getElementById('hideDone').checked=false;
+  render();
+});
+document.getElementById('hideDone').addEventListener('change', ()=>{ render(); });
+
+render();
+</script>
+</body>
+</html>
