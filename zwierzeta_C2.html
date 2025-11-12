@@ -2,40 +2,44 @@
 <html lang="pl">
 <head>
 <meta charset="utf-8"/>
-<title>Test pamięci — Zwierzęta – C2</title>
+<title>Zwierzęta – C2</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <style>
-  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; max-width:900px; margin:20px auto; padding:0 16px; line-height:1.45; }
-  h1 { font-size:1.4rem; margin-bottom:0.2rem; }
-  textarea { width:100%; min-height:120px; font-size:1rem; padding:10px; box-sizing:border-box; }
-  button { padding:8px 12px; border-radius:8px; border:1px solid #bbb; background:white; cursor:pointer; margin-right:6px; }
-  #results { margin-top:18px; }
-  .good { background:#c6f6c6; }
-  .bad { background:#fca5a5; }
-  .muted { color:#555; font-size:0.95rem; }
-  .counter { font-weight:bold; color:#2563eb; }
-  table { border-collapse:collapse; width:100%; margin-top:10px; }
-  th, td { border:1px solid #ddd; padding:8px; text-align:left; }
-  th { background:#f8f8f8; }
-  .level-header { background-color: #b91c1c; color: white; font-size: 1.2rem; font-weight: bold; padding: 10px 16px; text-align: center; border-radius: 0 0 8px 8px; margin-bottom: 12px; }
-  .controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px; }
-  .small { font-size:0.9rem; color:#444; }
-  label { display:inline-flex; align-items:center; gap:6px; }
+body { font-family:"Segoe UI", Roboto, -apple-system, "Helvetica Neue", Arial, sans-serif; max-width:980px; margin:20px auto; padding:0 18px; color:#111; }
+.level-header { background:#b91c1c; color:#fff; padding:14px 20px; border-radius:6px; text-align:center; font-weight:700; font-size:1.1rem; margin-bottom:14px; }
+h1 { font-size:1.6rem; margin:6px 0 8px 0; }
+.muted { color:#555; }
+textarea { width:100%; min-height:140px; padding:12px; box-sizing:border-box; font-family:monospace; font-size:0.95rem; border:1px solid #ccc; border-radius:6px; }
+.controls { display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+button { border:1px solid #d1d5db; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:500; }
+#checkBtn { background:#16a34a; color:#fff; }
+#hintBtn { background:#2563eb; color:#fff; }
+#clearBtn { background:#fff; color:#000; }
+.small { color:#444; }
+table { width:100%; border-collapse:collapse; margin-top:12px; }
+th, td { padding:12px 10px; border:1px solid #eee; text-align:left; }
+th { background:#fafafa; font-weight:700; }
+.good { background:#e6f9e6; }
+.bad { background:#ffecec; }
+label.inline { display:inline-flex; align-items:center; gap:8px; font-size:0.95rem; color:#333; }
 </style>
 </head>
 <body>
 <div class="level-header">Zwierzęta – C2</div>
 <h1>Test pamięci — pary PL-EN</h1>
-<p class="muted">Wpisz pary słów w formacie: <b>polskie słowo - angielskie słowo</b>.<br>
-Możesz podać kilka par, oddzielając je <b>przecinkami</b> lub <b>nowymi liniami</b>.<br>
-(Uwaga: <b>średnik „;”</b> w środku słowa oznacza wiele tłumaczeń – nie oddziela par!)</p>
+<p class="muted">
+Wpisz pary słów w formacie: <strong>polskie słowo - angielskie słowo</strong>.<br>
+Każdy wpis w osobnej linii.<br>
+(Uwaga: przecinki, średniki i nawiasy w środku frazy są częścią wyrażenia — nie rozdzielają par!)
+</p>
 
 <textarea id="answers" placeholder="Przykład: polskie - angielskie"></textarea>
+
 <div class="controls">
   <button id="checkBtn">Sprawdź</button>
   <button id="hintBtn">Podpowiedź</button>
   <button id="clearBtn">Wyczyść</button>
-  <label><input type="checkbox" id="hideDone"> Ukryj odgadnięte słowa</label>
+  <label class="inline"><input type="checkbox" id="hideDone"> Ukryj odgadnięte słowa</label>
   <div class="small">Trafione: <span id="counter">0</span> / <span id="total">0</span></div>
 </div>
 
@@ -43,184 +47,82 @@ Możesz podać kilka par, oddzielając je <b>przecinkami</b> lub <b>nowymi linia
 
 <script>
 const ITEMS = [
-{"pl":"schronienie","en":"(a) sanctuary"},
-{"pl":"kłusować","en":"to poach"},
-{"pl":"kłusownik","en":"a poacher"},
-{"pl":"jeleń; byk (samiec jelenie)","en":"a stag"},
-{"pl":"wieczór kawalerski","en":"a stag party"},
-{"pl":"łoś (europejski)","en":"an elk"},
-{"pl":"bizon","en":"a bison"},
-{"pl":"bizony","en":"bison"},
-{"pl":"żubr","en":"a European bison"},
-{"pl":"ryś","en":"a lynx"},
-{"pl":"borsuk","en":"a badger"},
-{"pl":"bóbr","en":"a beaver"},
-{"pl":"kret","en":"a mole"},
-{"pl":"kopiec kreta","en":"a molehill"},
-{"pl":"spać snem zimowym; zapadać w sen zimowy","en":"to hibernate"},
-{"pl":"sen zimowy; hibernacja","en":"hibernation"},
-{"pl":"baran","en":"a ram"},
-{"pl":"taran","en":"a battering ram"},
-{"pl":"wieprz","en":"a hog"},
-{"pl":"cham za kierownicą","en":"a road-hog"},
-{"pl":"pies (zwłaszcza kończy lub startujący w wyścigach)","en":"a hound"},
-{"pl":"uległy; potulny","en":"docile"},
-{"pl":"pociągać nosem; wąchać","en":"to sniff"},
-{"pl":"pies tropiący","en":"a sniffer dog"},
-{"pl":"młode dzikiego zwierzęcia","en":"a cub"},
-{"pl":"bażant","en":"a pheasant"},
-{"pl":"bażanty","en":"pheasant"},
-{"pl":"sokół","en":"a falcon"},
-{"pl":"sęp","en":"a vulture"},
-{"pl":"mewa","en":"a seagull"},
-{"pl":"karp","en":"a carp"},
-{"pl":"karpie","en":"carp"},
-{"pl":"dorsz","en":"a cod"},
-{"pl":"dorsze","en":"cod"},
-{"pl":"skrzela","en":"gills"},
-{"pl":"płetwa","en":"a fin"},
-{"pl":"łuska","en":"a scale"},
-{"pl":"ośmiornica","en":"an octopus"},
-{"pl":"kałamarnica; kalmar","en":"(a) squid"},
-{"pl":"ssak","en":"a mammal"},
-{"pl":"gad","en":"a reptile"},
-{"pl":"płaz","en":"an amphibian"},
-{"pl":"gryzoń","en":"a rodent"},
-{"pl":"wszystkożerca","en":"an omnivore"},
-{"pl":"wszystkożerny","en":"omnivorous"},
-{"pl":"mięsożerca","en":"a carnivore"},
-{"pl":"mięsożerny","en":"carnivorous"},
-{"pl":"roślinożerca","en":"a herbivore"},
-{"pl":"roślinożerny","en":"herbivorous"},
-{"pl":"konik polny","en":"a grasshopper"},
-{"pl":"gąsienica","en":"a caterpillar"},
-{"pl":"kolec","en":"a spike"},
-{"pl":"kolczasty; kłujący","en":"spiky"},
-{"pl":"grzywa","en":"a mane"},
-{"pl":"dziki; okrutny","en":"savage"}
+  {pl:"schronienie", en:"(a) sanctuary"},
+  {pl:"kłusować", en:"to poach"},
+  {pl:"kłusownik", en:"a poacher"},
+  {pl:"jeleń; byk (samiec jelenie)", en:"a stag"},
+  {pl:"wieczór kawalerski", en:"a stag party"},
+  {pl:"łoś (europejski)", en:"an elk"},
+  {pl:"bizon", en:"a bison"},
+  {pl:"bizony", en:"bison"},
+  {pl:"żubr", en:"a European bison"},
+  {pl:"ryś", en:"a lynx"},
+  {pl:"borsuk", en:"a badger"},
+  {pl:"bóbr", en:"a beaver"},
+  {pl:"kret", en:"a mole"},
+  {pl:"kopiec kreta", en:"a molehill"},
+  {pl:"spać snem zimowym; zapadać w sen zimowy", en:"to hibernate"},
+  {pl:"sen zimowy; hibernacja", en:"hibernation"},
+  {pl:"baran", en:"a ram"},
+  {pl:"taran", en:"a battering ram"},
+  {pl:"wieprz", en:"a hog"},
+  {pl:"cham za kierownicą", en:"a road-hog"},
+  {pl:"pies (zwłaszcza gończy lub startujący w wyścigach)", en:"a hound"},
+  {pl:"uległy; potulny", en:"docile"},
+  {pl:"pociągać nosem; wąchać", en:"to sniff"},
+  {pl:"pies tropiący", en:"a sniffer dog"},
+  {pl:"młode dzikiego zwierzęcia", en:"a cub"},
+  {pl:"bażant", en:"a pheasant"},
+  {pl:"bażanty", en:"pheasant"},
+  {pl:"sokół", en:"a falcon"},
+  {pl:"sęp", en:"a vulture"},
+  {pl:"mewa", en:"a seagull"},
+  {pl:"karp", en:"a carp"},
+  {pl:"karpie", en:"carp"},
+  {pl:"dorsz", en:"a cod"},
+  {pl:"dorsze", en:"cod"},
+  {pl:"skrzela", en:"gills"},
+  {pl:"płetwa", en:"a fin"},
+  {pl:"łuska", en:"a scale"},
+  {pl:"ośmiornica", en:"an octopus"},
+  {pl:"kałamarnica; kalmar", en:"(a) squid"},
+  {pl:"ssak", en:"a mammal"},
+  {pl:"gad", en:"a reptile"},
+  {pl:"płaz", en:"an amphibian"},
+  {pl:"gryzoń", en:"a rodent"},
+  {pl:"wszystkożerca", en:"an omnivore"},
+  {pl:"wszystkożerny", en:"omnivorous"},
+  {pl:"mięsożerca", en:"a carnivore"},
+  {pl:"mięsożerny", en:"carnivorous"},
+  {pl:"roślinożerca", en:"a herbivore"},
+  {pl:"roślinożerny", en:"herbivorous"},
+  {pl:"konik polny", en:"a grasshopper"},
+  {pl:"gąsienica", en:"a caterpillar"},
+  {pl:"kolec", en:"a spike"},
+  {pl:"kolczasty; kłujący", en:"spiky"},
+  {pl:"grzywa", en:"a mane"},
+  {pl:"dziki; okrutny", en:"savage"}
 ];
 
-let matched = []; // indexes of matched items (by original identity)
-let order = ITEMS.map((_,i)=>i); // current order as indexes into ITEMS
+let matched = [];
+let order = ITEMS.map((_,i)=>i);
 let showAll = false;
-let showHintsMode = false;
-
 document.getElementById('total').textContent = ITEMS.length;
 
-function normalize(s){ return String(s||'').trim().toLowerCase().replace(/[.,:()"]/g,'').normalize('NFKD').replace(/[̀-ͯ]/g,''); }
-
-function render(){
-  const results = document.getElementById('results');
-  results.innerHTML = '';
-  const table = document.createElement('table');
-  table.innerHTML = '<thead><tr><th>#</th><th>Angielski</th><th>Polski</th></tr></thead>';
-  const tbody = document.createElement('tbody');
-  let visibleIndex = 0;
-  order.forEach((origIdx, i)=>{
-    const it = ITEMS[origIdx];
-    const isMatched = matched.includes(origIdx);
-    // if hideDone is on and matched -> skip
-    if (document.getElementById('hideDone').checked && isMatched) return;
-    const tr = document.createElement('tr');
-    if (isMatched) tr.classList.add('good');
-    else if (showAll) tr.classList.add('bad');
-    const en = (isMatched || showAll) ? it.en : '— — —';
-    const pl = it.pl; // polish always visible
-    tr.innerHTML = `<td>${visibleIndex+1}</td><td>${en}</td><td>${pl}</td>`;
-    tbody.appendChild(tr);
-    visibleIndex++;
-  });
-  table.appendChild(tbody);
-  results.appendChild(table);
-  document.getElementById('counter').textContent = matched.length;
-  document.getElementById('total').textContent = ITEMS.length;
+function normalize(s){
+  return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[.:"]/g,'').replace(/\s+/g,' ').trim();
 }
+const HYPHENS = ['-','\u2010','\u2011','\u2012','\u2013','\u2014','\u2212','\uFE58','\uFE63','\uFF0D'];
+function findSeparatorIndex(s){for(let i=0;i<s.length;i++){const ch=s[i];const before=i>0?s[i-1]:'';const after=i<s.length-1?s[i+1]:'';if(HYPHENS.includes(ch)&&(/\s/.test(before)||/\s/.test(after)))return i;}return-1;}
+function parsePairFromEntry(entry){const s=String(entry||'').trim();if(!s)return null;const idx=findSeparatorIndex(s);if(idx>=0){const left=s.slice(0,idx).trim();const right=s.slice(idx+1).trim();if(left&&right)return[left,right];}const m=s.match(/^(.+?)\s*[-–—]\s*(.+)$/);if(m)return[m[1].trim(),m[2].trim()];return null;}
+function render(){const results=document.getElementById('results');results.innerHTML='';const table=document.createElement('table');table.innerHTML='<thead><tr><th>#</th><th>Angielski</th><th>Polski</th></tr></thead>';const tbody=document.createElement('tbody');let visibleIndex=0;for(const origIdx of order){if(document.getElementById('hideDone').checked&&matched.includes(origIdx))continue;const it=ITEMS[origIdx];const tr=document.createElement('tr');if(matched.includes(origIdx))tr.classList.add('good');else if(showAll)tr.classList.add('bad');const enText=(matched.includes(origIdx)||showAll)?it.en:'— — —';tr.innerHTML=`<td>${visibleIndex+1}</td><td>${enText}</td><td>${it.pl}</td>`;tbody.appendChild(tr);visibleIndex++;}table.appendChild(tbody);results.appendChild(table);document.getElementById('counter').textContent=matched.length;}
+function autoCheck(){const raw=document.getElementById('answers').value||'';const entries=raw.split(/\n+/).map(s=>s.trim()).filter(Boolean);const newly=[];for(const e of entries){const pair=parsePairFromEntry(e);if(!pair)continue;const[A,B]=pair;const left=normalize(A);const right=normalize(B);for(const idx of order){if(matched.includes(idx))continue;const it=ITEMS[idx];const plN=normalize(it.pl);const enN=normalize(it.en);if((plN===left&&enN===right)||(plN===right&&enN===left)){newly.push(idx);break;}}}if(newly.length){for(const idx of newly){order=order.filter(x=>x!==idx);order.push(idx);matched.push(idx);}render();}}
+document.getElementById('answers').addEventListener('input',()=>{showAll=false;autoCheck();});
+document.getElementById('checkBtn').addEventListener('click',()=>{showAll=true;render();});
+document.getElementById('hintBtn').addEventListener('click',()=>{showAll=false;render();const tbody=document.querySelector('#results tbody');if(!tbody)return;let r=0;for(const origIdx of order){if(document.getElementById('hideDone').checked&&matched.includes(origIdx))continue;const tr=tbody.children[r];if(!matched.includes(origIdx))tr.children[1].textContent=ITEMS[origIdx].en;r++;}}); 
+document.getElementById('clearBtn').addEventListener('click',()=>{document.getElementById('answers').value='';matched=[];order=ITEMS.map((_,i)=>i);showAll=false;document.getElementById('hideDone').checked=false;render();});
+document.getElementById('hideDone').addEventListener('change',()=>render());
 
-function autoCheck(){
-  const raw = document.getElementById('answers').value;
-  const entries = raw.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);
-  let newlyMatched = [];
-  entries.forEach(e=>{
-    const parts = e.split('-');
-    if(parts.length!==2) return;
-    const left = normalize(parts[0]);
-    const right = normalize(parts[1]);
-    // try to match against any unmatched item
-    for(const idx of order){
-      if(matched.includes(idx)) continue;
-      const it = ITEMS[idx];
-      const enN = normalize(it.en);
-      const plN = normalize(it.pl);
-      if((plN===left && enN===right) || (plN===right && enN===left)){
-        newlyMatched.push(idx);
-        break;
-      }
-    }
-  });
-  if(newlyMatched.length){
-    newlyMatched.forEach(idx=>{
-      // remove idx from its position
-      order = order.filter(x=>x!==idx);
-      order.push(idx);
-      matched.push(idx);
-    });
-  }
-  render();
-}
-
-document.getElementById('answers').addEventListener('input', ()=>{
-  showAll = false;
-  showHintsMode = false;
-  autoCheck();
-  document.getElementById('counter').textContent = matched.length;
-});
-
-document.getElementById('checkBtn').addEventListener('click', ()=>{
-  showAll = true;
-  showHintsMode = false;
-  render();
-  const tbody = document.querySelector('#results tbody');
-  let rowIdx = 0;
-  for(const origIdx of order){
-    if(document.getElementById('hideDone').checked && matched.includes(origIdx)) continue;
-    const tr = tbody.children[rowIdx];
-    tr.children[1].textContent = ITEMS[origIdx].en;
-    rowIdx++;
-  }
-});
-
-document.getElementById('hintBtn').addEventListener('click', ()=>{
-  showHintsMode = true;
-  showAll = false;
-  render();
-  const tbody = document.querySelector('#results tbody');
-  if(!tbody) return;
-  let rowIdx = 0;
-  for(const origIdx of order){
-    if(document.getElementById('hideDone').checked && matched.includes(origIdx)) continue;
-    const tr = tbody.children[rowIdx];
-    if(!matched.includes(origIdx)){
-      tr.children[1].textContent = ITEMS[origIdx].en;
-    }
-    rowIdx++;
-  }
-});
-
-document.getElementById('clearBtn').addEventListener('click', ()=>{
-  document.getElementById('answers').value = '';
-  matched = [];
-  order = ITEMS.map((_,i)=>i);
-  showAll = false;
-  showHintsMode = false;
-  document.getElementById('hideDone').checked = false;
-  render();
-});
-
-document.getElementById('hideDone').addEventListener('change', ()=>{
-  render();
-});
-
-// initialize
 render();
 </script>
 </body>
