@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8"/>
+<title>Moda i ubiór – C2</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<style>
+body { font-family:"Segoe UI", Roboto, -apple-system, "Helvetica Neue", Arial, sans-serif; max-width:980px; margin:20px auto; padding:0 18px; color:#111; }
+.level-header { background:#b91c1c; color:#fff; padding:14px 20px; border-radius:6px; text-align:center; font-weight:700; font-size:1.1rem; margin-bottom:14px; }
+h1 { font-size:1.6rem; margin:6px 0 8px 0; }
+.muted { color:#555; }
+textarea { width:100%; min-height:140px; padding:12px; box-sizing:border-box; font-family:monospace; font-size:0.95rem; border:1px solid #ccc; border-radius:6px; }
+.controls { display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+button { border:1px solid #d1d5db; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:500; }
+#checkBtn { background:#16a34a; color:#fff; }
+#hintBtn { background:#2563eb; color:#fff; }
+#clearBtn { background:#fff; color:#000; }
+.small { color:#444; }
+table { width:100%; border-collapse:collapse; margin-top:12px; }
+th, td { padding:12px 10px; border:1px solid #eee; text-align:left; }
+th { background:#fafafa; font-weight:700; }
+.good { background:#e6f9e6; }
+.bad { background:#ffecec; }
+label.inline { display:inline-flex; align-items:center; gap:8px; font-size:0.95rem; color:#333; }
+</style>
+</head>
+<body>
+<div class="level-header">Moda i ubiór – C2</div>
+<h1>Test pamięci — pary PL-EN</h1>
+<p class="muted">
+Wpisz pary słów w formacie: <strong>polskie słowo - angielskie słowo</strong>.<br>
+Każdy wpis w osobnej linii.<br>
+(Uwaga: przecinki, średniki i nawiasy w środku frazy są częścią wyrażenia — nie rozdzielają par!)
+</p>
+
+<textarea id="answers" placeholder="Przykład: polskie - angielskie"></textarea>
+
+<div class="controls">
+  <button id="checkBtn">Sprawdź</button>
+  <button id="hintBtn">Podpowiedź</button>
+  <button id="clearBtn">Wyczyść</button>
+  <label class="inline"><input type="checkbox" id="hideDone"> Ukryj odgadnięte słowa</label>
+  <div class="small">Trafione: <span id="counter">0</span> / <span id="total">0</span></div>
+</div>
+
+<div id="results"></div>
+
+<script>
+const ITEMS = [
+  {pl:"właściwy sposób ubierania się (stosownie do miejsca i czasu)", en:"a dress code"},
+  {pl:"dotyczący spodni", en:"trouser"},
+  {pl:"garnitur damski; spodnium", en:"a trouser suit"},
+  {pl:"prasownica do spodni (w hotelach)", en:"a trouser press"},
+  {pl:"melonik", en:"a bowler"},
+  {pl:"ogrodniczki", en:"dungarees"},
+  {pl:"bryczesy (spodnie do jazdy konnej)", en:"jodhpurs"},
+  {pl:"rękawiczka (z jednym palcem)", en:"a mitten"},
+  {pl:"falbanka", en:"a frill"},
+  {pl:"plisować; marszczyć", en:"to crease"},
+  {pl:"plisa; zmarszczka", en:"a crease"},
+  {pl:"nogawka", en:"a leg"},
+  {pl:"skąpy; kusy", en:"skimpy"},
+  {pl:"gumowe klapki; japonki", en:"flip-flops"},
+  {pl:"podeszwa (buta; stopy)", en:"a sole"},
+  {pl:"przebijać; przekłuwać", en:"to pierce"},
+  {pl:"przebijanie; przekłuwanie", en:"piercing"},
+  {pl:"przeszywający krzyk", en:"a piercing scream"},
+  {pl:"dziwaczny; cudaczny", en:"outlandish"}
+];
+
+let matched = [];
+let order = ITEMS.map((_,i)=>i);
+let showAll = false;
+document.getElementById('total').textContent = ITEMS.length;
+
+function normalize(s){
+  return String(s||'').toLowerCase().normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/[.:"]/g,'')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+const HYPHENS = ['-','\u2010','\u2011','\u2012','\u2013','\u2014','\u2212','\uFE58','\uFE63','\uFF0D'];
+function findSeparatorIndex(s){
+  for(let i=0;i<s.length;i++){
+    const ch=s[i];
+    const before=i>0?s[i-1]:'';
+    const after=i<s.length-1?s[i+1]:'';
+    if(HYPHENS.includes(ch)&&(/\s/.test(before)||/\s/.test(after)))return i;
+  }
+  return -1;
+}
+function parsePairFromEntry(entry){
+  const s=String(entry||'').trim();
+  if(!s)return null;
+  const idx=findSeparatorIndex(s);
+  if(idx>=0){
+    const left=s.slice(0,idx).trim();
+    const right=s.slice(idx+1).trim();
+    if(left&&right)return [left,right];
+  }
+  const m=s.match(/^(.+?)\s*[-–—]\s*(.+)$/);
+  if(m)return [m[1].trim(),m[2].trim()];
+  return null;
+}
+function render(){
+  const results=document.getElementById('results');
+  results.innerHTML='';
+  const table=document.createElement('table');
+  table.innerHTML='<thead><tr><th>#</th><th>Angielski</th><th>Polski</th></tr></thead>';
+  const tbody=document.createElement('tbody');
+  let visibleIndex=0;
+  for(const origIdx of order){
+    if(document.getElementById('hideDone').checked&&matched.includes(origIdx))continue;
+    const it=ITEMS[origIdx];
+    const tr=document.createElement('tr');
+    if(matched.includes(origIdx))tr.classList.add('good');
+    else if(showAll)tr.classList.add('bad');
+    const enText=(matched.includes(origIdx)||showAll)?it.en:'— — —';
+    tr.innerHTML=`<td>${visibleIndex+1}</td><td>${enText}</td><td>${it.pl}</td>`;
+    tbody.appendChild(tr);
+    visibleIndex++;
+  }
+  table.appendChild(tbody);
+  results.appendChild(table);
+  document.getElementById('counter').textContent=matched.length;
+}
+function autoCheck(){
+  const raw=document.getElementById('answers').value||'';
+  const entries=raw.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+  const newly=[];
+  for(const e of entries){
+    const pair=parsePairFromEntry(e);
+    if(!pair)continue;
+    const[A,B]=pair;
+    const left=normalize(A);
+    const right=normalize(B);
+    for(const idx of order){
+      if(matched.includes(idx))continue;
+      const it=ITEMS[idx];
+      const plN=normalize(it.pl);
+      const enN=normalize(it.en);
+      if((plN===left&&enN===right)||(plN===right&&enN===left)){
+        newly.push(idx);
+        break;
+      }
+    }
+  }
+  if(newly.length){
+    for(const idx of newly){
+      order=order.filter(x=>x!==idx);
+      order.push(idx);
+      matched.push(idx);
+    }
+    render();
+  }
+}
+document.getElementById('answers').addEventListener('input',()=>{showAll=false;autoCheck();});
+document.getElementById('checkBtn').addEventListener('click',()=>{showAll=true;render();});
+document.getElementById('hintBtn').addEventListener('click',()=>{
+  showAll=false;
+  render();
+  const tbody=document.querySelector('#results tbody');
+  if(!tbody)return;
+  let r=0;
+  for(const origIdx of order){
+    if(document.getElementById('hideDone').checked&&matched.includes(origIdx))continue;
+    const tr=tbody.children[r];
+    if(!matched.includes(origIdx))tr.children[1].textContent=ITEMS[origIdx].en;
+    r++;
+  }
+});
+document.getElementById('clearBtn').addEventListener('click',()=>{
+  document.getElementById('answers').value='';
+  matched=[];
+  order=ITEMS.map((_,i)=>i);
+  showAll=false;
+  document.getElementById('hideDone').checked=false;
+  render();
+});
+document.getElementById('hideDone').addEventListener('change',()=>render());
+render();
+</script>
+</body>
+</html>
